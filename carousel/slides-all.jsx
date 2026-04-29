@@ -12,9 +12,13 @@ const Slide00 = ({ index = 0 }) => (
 
     <div style={{
       position: 'absolute', top: 110, left: 60, right: 60,
-      fontFamily: '"JetBrains Mono", monospace', fontSize: 18, letterSpacing: '0.2em', opacity: 0.7
+      fontFamily: '"JetBrains Mono", monospace',
+      fontSize: 22,
+      letterSpacing: '0.18em',
+      color: '#B8D83A',
+      opacity: 0.95
     }}>
-      LISBOA · 2 DAYS · OFFLINE
+      ЛИССАБОН · 16–17 МАЯ · ОФЛАЙН
     </div>
 
     <Card position="center" style={{ background: '#0E0E12', color: '#FFFFFF' }}>
@@ -30,7 +34,7 @@ const Slide00 = ({ index = 0 }) => (
       <span style={{ fontFamily: '"Ruslan Display", "UnifrakturCook", serif', fontSize: 66, lineHeight: 1, display: 'block', marginTop: 4 }}>
         вайбкодинга.
       </span>
-      <div style={{ marginTop: 22, fontSize: 28, lineHeight: 1.4 }}>
+      <div style={{ marginTop: 22, fontSize: 29, lineHeight: 1.4 }}>
         Для тех, кто пока не считает себя техническим человеком.
         Будем разбираться в AI-инструментах, искать свои задачи и собирать первые
         прототипы и финальный проект.
@@ -39,11 +43,124 @@ const Slide00 = ({ index = 0 }) => (
   </SlideFrame>
 );
 
+const SelfInkField = () => {
+  const logs = [
+    '[01] → мысль появилась { seed: "я", mode: "first-person" }',
+    '[02] → не процесс, а ощущение { pressure: "0.55" }',
+    '[03] → собрать задачу { particles: "24000" }',
+    '[04] → вопрос: где это применить к жизни?',
+    '[05] → inkField composite { word: "я", velocity: "7.59" }',
+    '[06] → начать с себя, не с инструмента'
+  ];
+  const points = Array.from({ length: 72 }, (_, i) => {
+    const col = i % 12;
+    const row = Math.floor(i / 12);
+    const x = 230 + col * 48 + Math.sin(i * 1.7) * 26;
+    const y = 270 + row * 62 + Math.cos(i * 1.1) * 28;
+    const rotate = -28 + ((i * 17) % 64);
+    const delay = (i % 18) * 0.08;
+    const scale = 0.7 + ((i * 7) % 10) / 18;
+    return { x, y, rotate, delay, scale };
+  });
+  return (
+    <div style={{
+      position: 'absolute',
+      inset: 0,
+      overflow: 'hidden',
+      background: 'linear-gradient(180deg, #F4F1EA 0%, #E9E8DF 48%, #0D0E0E 100%)'
+    }}>
+      <style>{`
+        @keyframes selfWordPulse {
+          0%, 100% { opacity: .58; filter: blur(12px); transform: translate(-50%, -50%) scale(.94); }
+          50% { opacity: .96; filter: blur(2px); transform: translate(-50%, -50%) scale(1.02); }
+        }
+        @keyframes selfParticleDrift {
+          0%, 100% { transform: translate3d(0, 0, 0) rotate(var(--r)) scale(var(--s)); opacity: .42; }
+          50% { transform: translate3d(18px, -22px, 0) rotate(calc(var(--r) + 18deg)) scale(calc(var(--s) + .18)); opacity: .86; }
+        }
+        @keyframes selfLogSlide {
+          0% { transform: translateY(0); opacity: .46; }
+          50% { transform: translateY(-10px); opacity: .74; }
+          100% { transform: translateY(0); opacity: .46; }
+        }
+      `}</style>
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        opacity: 0.22,
+        backgroundImage: 'linear-gradient(rgba(5,5,5,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(5,5,5,0.05) 1px, transparent 1px)',
+        backgroundSize: '52px 52px'
+      }}/>
+      <div style={{
+        position: 'absolute',
+        top: 36,
+        left: 28,
+        right: 28,
+        fontFamily: '"JetBrains Mono", monospace',
+        fontSize: 22,
+        lineHeight: 1.58,
+        color: '#063F32',
+        opacity: 0.72,
+        animation: 'selfLogSlide 6s ease-in-out infinite'
+      }}>
+        {logs.map((line, i) => <div key={i}>› {line}</div>)}
+      </div>
+      <div style={{
+        position: 'absolute',
+        top: '36%',
+        left: '52%',
+        width: 760,
+        height: 520,
+        transform: 'translate(-50%, -50%)',
+        borderRadius: '52% 48% 46% 54%',
+        background: 'radial-gradient(circle at 42% 46%, rgba(0,104,78,0.92), rgba(0,104,78,0.48) 42%, rgba(0,104,78,0.04) 72%)',
+        filter: 'blur(20px)',
+        opacity: 0.78
+      }}/>
+      <div style={{
+        position: 'absolute',
+        top: '36%',
+        left: '52%',
+        fontFamily: '"Unbounded", "Inter", sans-serif',
+        fontSize: 420,
+        fontWeight: 800,
+        lineHeight: 1,
+        color: '#00684E',
+        opacity: 0.8,
+        animation: 'selfWordPulse 7s ease-in-out infinite',
+        textShadow: '0 18px 42px rgba(0,104,78,0.26)'
+      }}>
+        я
+      </div>
+      {points.map((p, i) => (
+        <span key={i} style={{
+          position: 'absolute',
+          left: p.x,
+          top: p.y,
+          width: 48,
+          height: 7,
+          borderRadius: 20,
+          background: i % 3 === 0 ? '#004F3F' : '#08765E',
+          opacity: 0.62,
+          '--r': `${p.rotate}deg`,
+          '--s': p.scale,
+          animation: `selfParticleDrift ${4.8 + (i % 6) * 0.35}s ease-in-out ${p.delay}s infinite`
+        }}/>
+      ))}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(8,9,9,0.08) 46%, rgba(8,9,9,0.92) 100%)'
+      }}/>
+    </div>
+  );
+};
+
 // 01 — «я уже опоздал?»
 const Slide01 = ({ index = 1 }) => (
   <SlideFrame index={index}>
-    <div style={{ position: 'absolute', inset: 0 }}><ShardField/></div>
-    <LiveGrain opacity={0.08}/>
+    <SelfInkField/>
+    <LiveGrain opacity={0.05}/>
 
     <Card anchor="«Я уже опоздал?»" position="upper">
       Если вы смотрите на AI и думаете именно так — это нормально.
@@ -56,18 +173,19 @@ const Slide01 = ({ index = 1 }) => (
       background: '#9BFF18',
       color: '#050505'
     }}>
+      <div style={{ fontSize: 29, lineHeight: 1.38 }}>
+        Если у вас мысли…
+        <br/><br/>
+        «Я не программист. У меня нет процессов. Я не хочу строить IT-продукт.
+        Мне просто надо понять, как это применить к моей жизни и работе».
+      </div>
       <div style={{
+        marginTop: 22,
         fontFamily: '"Unbounded", "Inter", sans-serif',
         fontWeight: 800,
-        fontSize: 32,
-        lineHeight: 1,
-        marginBottom: 20
+        fontSize: 39,
+        lineHeight: 1.08
       }}>
-        Если у вас
-      </div>
-      «Я не программист. У меня нет процессов. Я не хочу строить IT-продукт.
-      Мне просто надо понять, как это применить к моей жизни и работе».
-      <div style={{ marginTop: 20, fontSize: 26, opacity: 0.9 }}>
         С этого и начнём.
       </div>
     </Card>
@@ -76,10 +194,10 @@ const Slide01 = ({ index = 1 }) => (
       alt=""
       style={{
         position: 'absolute',
-        width: 250,
-        height: 'auto',
-        right: 18,
-        bottom: 480,
+	        width: 250,
+	        height: 'auto',
+	        right: 18,
+	        bottom: 500,
         zIndex: 8,
         pointerEvents: 'none',
         filter: 'drop-shadow(0 18px 26px rgba(0, 0, 0, 0.45))'
