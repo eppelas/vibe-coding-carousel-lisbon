@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Carousel Style Switcher</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; background: #111116; color: #ece6d6; font-family: Inter, system-ui, sans-serif; }
+      .bar {
+        position: sticky; top: 0; z-index: 10;
+        display: flex; align-items: center; justify-content: space-between; gap: 20px;
+        padding: 14px 18px;
+        background: rgba(17, 17, 22, .9);
+        border-bottom: 1px solid rgba(255,255,255,.12);
+        backdrop-filter: blur(18px);
+      }
+      h1 { margin: 0; font-size: 16px; letter-spacing: .02em; font-weight: 650; }
+      .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+      button, a.open {
+        appearance: none;
+        border: 1px solid rgba(236,230,214,.24);
+        background: transparent;
+        color: inherit;
+        padding: 9px 12px;
+        border-radius: 999px;
+        font: 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      button[aria-pressed="true"] { background: #ece6d6; color: #111116; }
+      iframe { display: block; width: 100%; height: calc(100vh - 59px); border: 0; background: #0a0a0a; }
+    </style>
+  </head>
+  <body>
+    <div class="bar">
+      <h1>Vibecoding carousel styles</h1>
+      <div class="tabs">
+        <button type="button" data-src="styles/acid-editorial.html" aria-pressed="true">Acid editorial</button>
+        <button type="button" data-src="styles/night-gothic.html" aria-pressed="false">Night gothic</button>
+        <a class="open" id="open" href="styles/acid-editorial.html" target="_blank" rel="noreferrer">Open</a>
+      </div>
+    </div>
+    <iframe id="frame" src="styles/acid-editorial.html" title="Carousel preview"></iframe>
+    <script>
+      const frame = document.getElementById('frame');
+      const open = document.getElementById('open');
+      document.querySelectorAll('button[data-src]').forEach((button) => {
+        button.addEventListener('click', () => {
+          document.querySelectorAll('button[data-src]').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+          button.setAttribute('aria-pressed', 'true');
+          frame.src = button.dataset.src;
+          open.href = button.dataset.src;
+        });
+      });
+    </script>
+  </body>
+</html>

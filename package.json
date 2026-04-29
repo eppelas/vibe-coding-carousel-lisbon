@@ -1,0 +1,15 @@
+{
+  "name": "vibe-coding-carousel",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "export": "node scripts/export.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.42.1",
+    "vite": "^5.2.0"
+  }
+}

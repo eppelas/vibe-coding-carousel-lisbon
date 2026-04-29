@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Carousel — Vibecoding Lisbon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600;1,700&family=Ruslan+Display&subset=cyrillic&family=Unbounded:wght@400;600;700;800&family=UnifrakturCook:wght@700&display=swap" rel="stylesheet"/>
+<style>
+  html, body { margin: 0; padding: 0; background: #1A1A20; color: #ECE6D6; font-family: 'Inter', sans-serif; }
+  body { padding: 60px 40px 100px; }
+
+  .header {
+    max-width: 1480px; margin: 0 auto 50px;
+    display: flex; justify-content: space-between; align-items: flex-end; gap: 40px;
+  }
+  .header h1 {
+    font-family: 'UnifrakturCook', serif; font-weight: 700;
+    font-size: 56px; line-height: 1; margin: 0;
+  }
+  .header .meta {
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    opacity: 0.55; text-align: right; line-height: 1.6;
+  }
+
+  /* Carousel-style horizontal scroller (NOT stories — just a gallery row) */
+  .scroller {
+    max-width: 1480px; margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 28px;
+  }
+  .card {
+    background: #0E0E12;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.35);
+  }
+  .card-thumb {
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    position: relative;
+    overflow: hidden;
+  }
+  .card-thumb > div {
+    transform-origin: top left;
+    position: absolute; top: 0; left: 0;
+  }
+  .card-foot {
+    padding: 12px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    opacity: 0.7;
+    border-top: 1px solid #ffffff10;
+    letter-spacing: 0.1em;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Carousel · Two days of vibecoding</h1>
+  <div class="meta">
+    19 SLIDES · LISBOA · 2 DAYS<br/>
+    LIVE PREVIEW · CANVAS PATTERNS ANIMATE
+  </div>
+</div>
+
+<div id="root" class="scroller"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="../characters.jsx"></script>
+<script type="text/babel" src="../patterns.jsx"></script>
+<script type="text/babel" src="../patterns-extra.jsx"></script>
+<script type="text/babel" src="../slide-frame.jsx"></script>
+<script type="text/babel" src="../slides-all.jsx"></script>
+<script type="text/babel" src="../tweaks-panel.jsx"></script>
+
+<script type="text/babel">
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "mood": "acid",
+    "anchorVoice": "serif",
+    "cardTone": "inverted"
+  }/*EDITMODE-END*/;
+
+  const SLIDE_CONFIG = [
+    { Comp: Slide00, label: 'Cover · Лиссабон, два дня' },
+    { Comp: Slide01, label: 'Я уже опоздал?' },
+    { Comp: Slide02, label: 'Вайбкодинг — определение' },
+    { Comp: Slide04, label: 'Туман' },
+    { Comp: Slide05, label: 'AI как партнёр' },
+    { Comp: Slide06, label: 'Кэмп · 2 дня' },
+    { Comp: Slide07, label: 'Эта карусель — кейс' },
+    { Comp: Slide08, label: 'День 1 · карта инструментов' },
+    { Comp: Slide09, label: 'Ваша задача' },
+    { Comp: Slide10, label: 'Простой PRD' },
+    { Comp: Slide11, label: 'День 2 · доводим' },
+    { Comp: Slide12, label: 'Визуальный блок' },
+    { Comp: Slide13, label: 'Анка' },
+    { Comp: Slide14, label: 'CTA · Лиссабон 2 дня' },
+    { Comp: Slide03, label: 'Процессы' },
+    { Comp: Slide15, label: 'ALT · Ticket / camp' },
+    { Comp: Slide16, label: 'ALT · Code case' },
+    { Comp: Slide17, label: 'ALT · PRD' },
+    { Comp: Slide18, label: 'ALT · Speaker' },
+  ];
+
+  const ThumbCard = ({ Comp, idx, label }) => {
+    const wrapRef = React.useRef(null);
+    const [scale, setScale] = React.useState(0.3);
+    React.useEffect(() => {
+      if (!wrapRef.current) return;
+      const ro = new ResizeObserver(() => {
+        const w = wrapRef.current.clientWidth;
+        setScale(w / 1080);
+      });
+      ro.observe(wrapRef.current);
+      return () => ro.disconnect();
+    }, []);
+    return (
+      <div className="card">
+        <div ref={wrapRef} className="card-thumb">
+          <div style={{ transform: `scale(${scale})`, width: 1080, height: 1620 }}>
+            <Comp index={idx}/>
+          </div>
+        </div>
+        <div className="card-foot">
+          {String(idx + 1).padStart(2, '0')} · {label}
+        </div>
+      </div>
+    );
+  };
+
+  const App = () => {
+    const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+    // Expose to slide-frame & patterns via global so they don't need prop-drilling
+    window.__carouselTweaks = t;
+
+    // Background hue follows mood — gives the gallery itself a different temperature
+    React.useEffect(() => {
+      const moodBg = { night: '#1A1A20', day: '#E8E2D2', acid: '#0A0A0A' };
+      document.body.style.background = moodBg[t.mood] || '#1A1A20';
+      document.body.style.color = t.mood === 'day' ? '#0E0E12' : '#ECE6D6';
+    }, [t.mood]);
+
+    return (
+      <>
+        {SLIDE_CONFIG.map((s, i) => <ThumbCard key={`${i}-${t.mood}-${t.anchorVoice}-${t.cardTone}`} idx={i} {...s}/>)}
+        <TweaksPanel title="Tweaks">
+          <TweakSection label="Mood" hint="палитра + температура галереи"/>
+          <TweakRadio
+            value={t.mood}
+            options={[
+              { value: 'night', label: 'Night' },
+              { value: 'day',   label: 'Day' },
+              { value: 'acid',  label: 'Acid' },
+            ]}
+            onChange={(v) => setTweak('mood', v)}
+          />
+          <TweakSection label="Anchor voice" hint="шрифт «якоря» — личность типографики"/>
+          <TweakRadio
+            value={t.anchorVoice}
+            options={[
+              { value: 'gothic', label: 'Gothic' },
+              { value: 'serif',  label: 'Editorial' },
+              { value: 'mono',   label: 'Mono caps' },
+            ]}
+            onChange={(v) => setTweak('anchorVoice', v)}
+          />
+          <TweakSection label="Card tone" hint="фигура/фон — как текст лежит на паттерне"/>
+          <TweakRadio
+            value={t.cardTone}
+            options={[
+              { value: 'paper',       label: 'Paper' },
+              { value: 'transparent', label: 'Floating' },
+              { value: 'inverted',    label: 'Inverted' },
+            ]}
+            onChange={(v) => setTweak('cardTone', v)}
+          />
+        </TweaksPanel>
+      </>
+    );
+  };
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+
+</body>
+</html>

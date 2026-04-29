@@ -1,0 +1,97 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #0b0b0d; /* Cold dark background for preview page */
+  color: #fffaf0;
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
+}
+
+#app {
+  padding: 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+header {
+  margin-bottom: 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 20px;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+header p {
+  margin: 0 0 8px 0;
+  color: #8f8f8f;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  font-family: 'Space Mono', monospace;
+}
+
+.meta {
+  color: #11b5c9;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.9rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 40px;
+}
+
+.slide-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.slide-wrap canvas {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: 8px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  background: #000;
+}
+
+.caption {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.85rem;
+  color: #8f8f8f;
+}
+
+/* Hide grid and just show canvas when exporting */
+body.export-mode #app {
+  padding: 0;
+  margin: 0;
+  max-width: none;
+}
+
+body.export-mode header,
+body.export-mode .grid {
+  display: none;
+}
+
+body.export-mode .export-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1080px;
+  height: 1620px;
+  border-radius: 0;
+  box-shadow: none;
+}
