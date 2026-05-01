@@ -24,7 +24,7 @@ const useExCanvas = (drawFn, deps = []) => {
 // ───────────────────────────────────────────
 // INK BLOOM — slow ink-in-water blots, organic
 // ───────────────────────────────────────────
-const InkBloom = ({ inverted = false, structured = false }) => {
+const InkBloom = ({ inverted = false }) => {
   const blobsRef = peUseRef(null);
   if (!blobsRef.current) {
     const arr = [];
@@ -44,8 +44,6 @@ const InkBloom = ({ inverted = false, structured = false }) => {
     ctx.fillRect(0, 0, W, H);
     const fg = inverted ? '#0E0E12' : '#FFFFFF';
     const minD = Math.min(W, H);
-    const clarity = structured ? Math.min(t / 7, 1) : 0;
-    const softness = structured ? (1 - clarity) : 1;
     blobsRef.current.forEach(b => {
       const cx = b.cx * W + Math.cos(t * b.speed + b.phase) * 30;
       const cy = b.cy * H + Math.sin(t * b.speed * 0.8 + b.phase) * 30;
@@ -54,8 +52,7 @@ const InkBloom = ({ inverted = false, structured = false }) => {
       for (let layer = 0; layer < 8; layer++) {
         const f = 1 - layer / 8;
         ctx.fillStyle = fg;
-        ctx.globalAlpha = (0.05 + 0.04 * f) * (structured ? 0.95 - clarity * 0.55 : 1);
-        ctx.filter = structured ? `blur(${Math.max(0, softness * 18 - layer * 1.4)}px)` : 'none';
+        ctx.globalAlpha = 0.05 + 0.04 * f;
         ctx.beginPath();
         const segs = 80;
         for (let i = 0; i <= segs; i++) {
@@ -71,89 +68,186 @@ const InkBloom = ({ inverted = false, structured = false }) => {
         ctx.fill();
       }
     });
-    ctx.filter = 'none';
-
-    if (structured) {
-      const cx = W * 0.5;
-      const cy = H * 0.43;
-      const radius = minD * (0.23 + clarity * 0.05);
-      const steps = 10;
-      const alpha = 0.08 + clarity * 0.42;
-
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(-0.08 + Math.sin(t * 0.16) * 0.015);
-
-      for (let i = 0; i < steps; i++) {
-        const p = i / (steps - 1);
-        const r = radius * (0.35 + p * 0.9);
-        ctx.strokeStyle = fg;
-        ctx.globalAlpha = alpha * (0.25 + p * 0.75);
-        ctx.lineWidth = 1 + clarity * 2;
-        ctx.beginPath();
-        const segs = 6;
-        for (let j = 0; j <= segs; j++) {
-          const a = (j / segs) * Math.PI * 2 - Math.PI / 2;
-          const snap = 1 - clarity;
-          const wob = Math.sin(j * 1.7 + t * 0.35) * radius * 0.08 * snap;
-          const x = Math.cos(a) * (r + wob);
-          const y = Math.sin(a) * (r * 0.62 + wob * 0.6);
-          if (j === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-      }
-
-      ctx.globalAlpha = 0.18 + clarity * 0.38;
-      ctx.lineWidth = 1;
-      for (let x = -radius * 1.25; x <= radius * 1.25; x += 34) {
-        ctx.beginPath();
-        ctx.moveTo(x, -radius * 0.82);
-        ctx.lineTo(x + clarity * 18, radius * 0.82);
-        ctx.stroke();
-      }
-      for (let y = -radius * 0.82; y <= radius * 0.82; y += 34) {
-        ctx.beginPath();
-        ctx.moveTo(-radius * 1.25, y);
-        ctx.lineTo(radius * 1.25, y - clarity * 12);
-        ctx.stroke();
-      }
-
-      ctx.globalAlpha = 0.55 + clarity * 0.25;
-      ctx.lineWidth = 3;
-      ctx.strokeRect(-radius * 1.18, -radius * 0.75, radius * 2.36, radius * 1.5);
-      ctx.restore();
-    }
-
     ctx.globalAlpha = 1;
   });
   return <canvas ref={ref} style={{ width: '100%', height: '100%', display: 'block' }}/>;
 };
 
 // ───────────────────────────────────────────
-// DOT TUNNEL — perspective dot field, infinite zoom
+// FOG TO STRUCTURE — imported from Fog to Structure Slide.html
 // ───────────────────────────────────────────
-const DotTunnel = () => {
+const FogToStructure = ({
+  endForm = 'orbits',
+  population = 6,
+  turbulence = 0.07,
+  startOffset = 0,
+  speed = 1
+}) => {
+  const blobsRef = peUseRef(null);
+  const seed = peUseRef(84321);
+  const rand = () => {
+    seed.current = (seed.current * 1664525 + 1013904223) >>> 0;
+    return seed.current / 4294967296;
+  };
+  if (!blobsRef.current) {
+    blobsRef.current = Array.from({ length: population }, () => ({
+      cx: 0.15 + rand() * 0.7,
+      cy: 0.15 + rand() * 0.7,
+      r: 0.18 + rand() * 0.22,
+      phase: rand() * 6,
+      speed: 0.05 + rand() * 0.1,
+      verts: Array.from({ length: 14 }, () => 0.7 + rand() * 0.5),
+      teeth: 8 + Math.floor(rand() * 7),
+      spin: (rand() < 0.5 ? -1 : 1) * (0.4 + rand() * 0.4)
+    }));
+  }
+
+  const easeInOut = (x) => x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+  const smoothstep = (e0, e1, x) => {
+    const v = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)));
+    return v * v * (3 - 2 * v);
+  };
+
+  const ref = useExCanvas((ctx, W, H, elapsedRaw) => {
+    const elapsed = elapsedRaw * speed + startOffset;
+    const duration = 15;
+    const tRaw = (elapsed % duration) / duration;
+    const p = easeInOut(tRaw);
+    const t = elapsed * 1.6;
+    const minD = Math.min(W, H);
+
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = '#0E0E12';
+    ctx.fillRect(0, 0, W, H);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    const driftAmp = (20 + 50 * p) * (0.4 + turbulence * 1.2);
+    const layers = Math.round(10 + 10 * p);
+    const segs = 160;
+    const wobFreq = 5 + 7 * p;
+    const wobAmp = (0.06 + 0.16 * p) * (0.5 + turbulence);
+    const layerSpread = 0.07 * p * (0.4 + turbulence * 1.2);
+    const stretch = 1 + 0.9 * p;
+    const crystAlpha = smoothstep(0.55, 1.0, p);
+    const formMix = smoothstep(0.55, 1.0, p);
+
+    blobsRef.current.forEach((b, idx) => {
+      const cx = b.cx * W + Math.cos(t * b.speed + b.phase) * driftAmp;
+      const cy = b.cy * H + Math.sin(t * b.speed * 0.8 + b.phase) * driftAmp;
+      const baseR = b.r * minD * (0.85 + 0.15 * Math.sin(t * 0.4 + idx));
+      const stretchAng = b.phase + t * 0.04 * p;
+      const gearSpin = b.spin * t;
+      const cloudOpa = 1 - 0.45 * p;
+
+      for (let layer = 0; layer < layers; layer++) {
+        const f = 1 - layer / layers;
+        const layerRot = layerSpread * layer * (idx % 2 === 0 ? 1 : -1)
+          + Math.sin(t * 0.05 + idx + layer) * 0.15 * p;
+        ctx.fillStyle = '#FFFFFF';
+        ctx.globalAlpha = (0.05 + 0.04 * f) * cloudOpa;
+        ctx.beginPath();
+        for (let i = 0; i <= segs; i++) {
+          const a = (i / segs) * Math.PI * 2 + layerRot;
+          const vi = Math.floor((i / segs) * b.verts.length) % b.verts.length;
+          const wob = b.verts[vi] + Math.sin(a * wobFreq + t * 0.6 + b.phase) * wobAmp;
+          const r = baseR * (0.7 + 0.3 * f) * wob;
+          const lx = Math.cos(a) * r * stretch;
+          const ly = Math.sin(a) * r;
+          const x = cx + Math.cos(stretchAng) * lx - Math.sin(stretchAng) * ly;
+          const y = cy + Math.sin(stretchAng) * lx + Math.cos(stretchAng) * ly;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      if (crystAlpha <= 0.001) return;
+      ctx.globalAlpha = crystAlpha;
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.fillStyle = '#FFFFFF';
+      ctx.lineWidth = 0.8;
+
+      if (endForm === 'orbits') {
+        for (let layer = 0; layer < 4; layer++) {
+          ctx.globalAlpha = crystAlpha * (0.9 - layer * 0.18);
+          ctx.beginPath();
+          const ra = baseR * (0.4 + 0.18 * layer) * stretch;
+          const rb = baseR * (0.4 + 0.18 * layer) * 0.78;
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate(stretchAng + layer * 0.15);
+          ctx.ellipse(0, 0, ra, rb, 0, 0, Math.PI * 2);
+          ctx.restore();
+          ctx.stroke();
+          const sa = gearSpin * (1 + layer * 0.4);
+          const rot = stretchAng + layer * 0.15;
+          const sx = cx + Math.cos(rot) * Math.cos(sa) * ra - Math.sin(rot) * Math.sin(sa) * rb;
+          const sy = cy + Math.sin(rot) * Math.cos(sa) * ra + Math.cos(rot) * Math.sin(sa) * rb;
+          ctx.beginPath();
+          ctx.arc(sx, sy, 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = crystAlpha;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (endForm === 'cogs') {
+        const teeth = b.teeth;
+        const N = teeth * 32;
+        const sharp = 6 + 14 * formMix;
+        const toothDepth = 0.11 * formMix;
+        ctx.beginPath();
+        for (let i = 0; i <= N; i++) {
+          const a = (i / N) * Math.PI * 2 + gearSpin;
+          const tooth = Math.tanh(Math.sin(a * teeth) * sharp) * 0.5 + 0.5;
+          const r = baseR * (0.85 - toothDepth + toothDepth * 2 * tooth);
+          const x = cx + Math.cos(a) * r;
+          const y = cy + Math.sin(a) * r;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx, cy, baseR * 0.32, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    });
+    ctx.globalAlpha = 1;
+  }, [endForm, population, turbulence, startOffset, speed]);
+
+  return <canvas ref={ref} style={{ width: '100%', height: '100%', display: 'block' }}/>;
+};
+
+// ───────────────────────────────────────────
+// DOT TUNNEL — slow dot field, points drift out and softly respawn
+// ───────────────────────────────────────────
+const DotTunnel = ({ duration = 15 }) => {
   const ref = useExCanvas((ctx, W, H, t) => {
     ctx.fillStyle = '#0E0E12';
     ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = '#FFFFFF';
     const cx = W / 2, cy = H / 2;
-    const layers = 60;
-    for (let l = 0; l < layers; l++) {
-      const z = ((l + (t * 8) % 1) / layers);
-      const radius = z * Math.max(W, H) * 1.1;
-      const ringDots = 24 + l * 2;
-      const opacity = Math.min(1, z * 1.6) * (1 - z) * 1.6;
-      ctx.globalAlpha = Math.max(0, opacity);
-      const dotSize = 0.5 + z * 5;
-      for (let i = 0; i < ringDots; i++) {
-        const a = (i / ringDots) * Math.PI * 2 + l * 0.07;
-        const x = cx + Math.cos(a) * radius;
-        const y = cy + Math.sin(a) * radius;
-        ctx.beginPath();
-        ctx.arc(x, y, dotSize, 0, Math.PI * 2);
-        ctx.fill();
-      }
+    const count = 520;
+    const maxR = Math.max(W, H) * 0.82;
+    const phase = (t % duration) / duration;
+    for (let i = 0; i < count; i++) {
+      const seed = (Math.sin(i * 127.1) * 43758.5453) % 1;
+      const seed2 = (Math.sin(i * 311.7) * 24634.6345) % 1;
+      const base = (seed + phase) % 1;
+      const eased = base * base * (3 - 2 * base);
+      const a = i * 2.399963 + Math.sin(i * 0.17) * 0.35;
+      const wobble = Math.sin(t * 0.22 + i * 0.41) * 8;
+      const r = 28 + eased * maxR + wobble;
+      const x = cx + Math.cos(a) * r;
+      const y = cy + Math.sin(a) * r * 1.14;
+      const fadeIn = Math.min(1, base / 0.16);
+      const fadeOut = Math.min(1, (1 - base) / 0.22);
+      ctx.globalAlpha = 0.06 + Math.max(0, Math.min(fadeIn, fadeOut)) * 0.8;
+      const dotSize = 1.1 + eased * 4.6 + seed2 * 0.8;
+      ctx.beginPath();
+      ctx.arc(x, y, dotSize, 0, Math.PI * 2);
+      ctx.fill();
     }
     ctx.globalAlpha = 1;
   });
@@ -590,7 +684,11 @@ const WaveField = () => {
   return <canvas ref={ref} style={{ width: '100%', height: '100%', display: 'block' }}/>;
 };
 
-const LisbonMistBackground = () => {
+const LisbonMistBackground = ({
+  background = '#0b0b0d',
+  stroke = '#ffffff',
+  showOrbs = true
+} = {}) => {
   const mistNoise = (n) => {
     const v = Math.sin(n * 127.1 + 311.7) * 43758.5453123;
     return v - Math.floor(v);
@@ -629,23 +727,110 @@ const LisbonMistBackground = () => {
     ctx.restore();
   };
   const ref = useExCanvas((ctx, W, H, t) => {
-    ctx.fillStyle = '#0b0b0d';
+    ctx.fillStyle = background;
     ctx.fillRect(0, 0, W, H);
-    drawWireMountains(ctx, -120, -30, W + 240, H * 0.9, t * 0.8, '#ffffff', 0.35);
-    ctx.save();
-    for (let i = 0; i < 18; i++) {
-      ctx.globalAlpha = 0.045;
-      ctx.fillStyle = i % 2 ? '#11b5c9' : '#ffffff';
-      mistCircle(ctx, mistNoise(i) * W, 330 + mistNoise(i + 4) * 610, 110 + i * 12 + Math.sin(t + i) * 20);
+    drawWireMountains(ctx, -120, -30, W + 240, H * 0.9, t * 0.8, stroke, 0.35);
+    if (showOrbs) {
+      ctx.save();
+      for (let i = 0; i < 18; i++) {
+        ctx.globalAlpha = 0.045;
+        ctx.fillStyle = i % 2 ? '#11b5c9' : '#ffffff';
+        mistCircle(ctx, mistNoise(i) * W, 330 + mistNoise(i + 4) * 610, 110 + i * 12 + Math.sin(t + i) * 20);
+      }
+      ctx.restore();
     }
-    ctx.restore();
   });
   return <canvas ref={ref} style={{ width: '100%', height: '100%', display: 'block' }}/>;
 };
 
+const FogGridVeil = () => {
+  const ref = useExCanvas((ctx, W, H, t) => {
+    ctx.clearRect(0, 0, W, H);
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 38; i++) {
+      const baseX = -80 + i * (W + 160) / 37;
+      ctx.globalAlpha = 0.035 + (i % 5) * 0.01;
+      ctx.beginPath();
+      ctx.moveTo(baseX + Math.sin(t * 0.2 + i) * 28, -20);
+      ctx.lineTo(baseX + Math.cos(t * 0.17 + i) * 72, H + 40);
+      ctx.stroke();
+    }
+    for (let i = 0; i < 22; i++) {
+      const y = i * H / 21;
+      ctx.globalAlpha = 0.03 + (i % 4) * 0.012;
+      ctx.beginPath();
+      ctx.moveTo(-30, y + Math.sin(t * 0.2 + i) * 22);
+      ctx.bezierCurveTo(W * 0.25, y - 38, W * 0.65, y + 34, W + 30, y + Math.cos(t * 0.16 + i) * 28);
+      ctx.stroke();
+    }
+  });
+  return <canvas ref={ref} style={{ width: '100%', height: '100%', display: 'block' }}/>;
+};
+
+const StudioGridNetwork = ({
+  scale = 1,
+  background = '#0f1014',
+  ink = '#fff',
+  lineAlpha = 0.2,
+  clear = false,
+  speed = 1,
+  dotSize = 4,
+  showCross = false
+}) => {
+  const stroke = ink === '#fff' || ink === '#FFFFFF'
+    ? `rgba(255,255,255,${lineAlpha})`
+    : `rgba(0,0,0,${lineAlpha})`;
+  const ref = useExCanvas((ctx, W, H, t) => {
+    const frame = t * 60 * speed;
+    const cx = W / 2;
+    const cy = H / 2;
+    const s = Math.min(W / 458, H / 714) * scale;
+
+    if (clear) {
+      ctx.clearRect(0, 0, W, H);
+    } else {
+      ctx.fillStyle = background;
+      ctx.fillRect(0, 0, W, H);
+    }
+    ctx.fillStyle = ink;
+    ctx.strokeStyle = stroke;
+
+    for (let i = 0; i < 40; i++) {
+      const x = cx + Math.sin(i * 13 + frame * 0.01) * 300 * s;
+      const y = cy + Math.cos(i * 17 - frame * 0.005) * 300 * s;
+
+      ctx.beginPath();
+      ctx.globalAlpha = 0.78;
+      ctx.arc(x, y, dotSize * s, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (i % 3 === 0) {
+        ctx.beginPath();
+        ctx.globalAlpha = lineAlpha;
+        ctx.moveTo(x, y);
+        ctx.lineTo(cx, cy);
+        ctx.stroke();
+      }
+    }
+    if (showCross) {
+      ctx.globalAlpha = 0.72;
+      ctx.lineWidth = 1.4 * s;
+      ctx.beginPath();
+      ctx.moveTo(cx - 170 * s, cy);
+      ctx.lineTo(cx + 170 * s, cy);
+      ctx.moveTo(cx, cy - 170 * s);
+      ctx.lineTo(cx, cy + 170 * s);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }, [scale, background, ink, lineAlpha, clear, stroke, speed, dotSize, showCross]);
+  return <canvas ref={ref} style={{ width: '100%', height: '100%', display: 'block' }}/>;
+};
+
 Object.assign(window, {
-  InkBloom, DotTunnel, ContourValley, PixelDrift,
+  InkBloom, FogToStructure, DotTunnel, ContourValley, PixelDrift,
   RibbonLattice, LissajousBloom, ScanStatic, CrystalGrid,
   HalftonePortal, DraftingDesk, WaveField, LisbonMistBackground,
-  DefinitionSplitBackground
+  DefinitionSplitBackground, FogGridVeil, StudioGridNetwork
 });

@@ -207,14 +207,38 @@
     .thumb-btn { min-width: 168px; font-size: 15px; padding: 16px 18px; }
     .thumb-btn strong { font-size: 17px; margin-bottom: 7px; }
   }
+  html.export-mode,
+  html.export-mode body {
+    width: 1080px !important;
+    height: 1620px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    background: #000 !important;
+  }
+  html.export-mode .header {
+    display: none !important;
+  }
+  html.export-mode #root {
+    width: 1080px !important;
+    height: 1620px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
 </style>
 </head>
 <body>
 
+<script>
+  if (new URLSearchParams(window.location.search).get('export') === '1') {
+    document.documentElement.classList.add('export-mode');
+  }
+</script>
+
 <div class="header">
   <h1>Carousel · Two days of vibecoding</h1>
   <div class="meta">
-    19 SLIDES · LISBOA · 2 DAYS<br/>
+    23 SLIDES · LISBOA · 2 DAYS<br/>
     LIVE PREVIEW · CANVAS PATTERNS ANIMATE
   </div>
 </div>
@@ -243,23 +267,37 @@
     { Comp: Slide00, label: 'Cover · Лиссабон, два дня' },
     { Comp: Slide01, label: 'Я уже опоздал?' },
     { Comp: Slide02, label: 'Вайбкодинг — определение' },
-    { Comp: Slide04, label: 'Туман' },
     { Comp: Slide05, label: 'AI как партнёр' },
     { Comp: Slide06, label: 'Кэмп · 2 дня' },
     { Comp: Slide07, label: 'Эта карусель — кейс' },
-    { Comp: Slide08, label: 'День 1 · карта инструментов' },
-    { Comp: Slide09, label: 'Ваша задача' },
-    { Comp: Slide10, label: 'Простой PRD' },
-    { Comp: Slide11, label: 'День 2 · доводим' },
-    { Comp: Slide12, label: 'Визуальный блок' },
+    { Comp: Slide12WideBlock, label: 'Визуальный блок · full-width' },
     { Comp: Slide13, label: 'Анка' },
-    { Comp: Slide14, label: 'CTA · Лиссабон 2 дня' },
+    { Comp: Slide20, label: 'Саша' },
     { Comp: Slide03, label: 'Процессы' },
+    { Comp: Slide09, label: 'Ваша задача' },
+    { Comp: Slide14, label: 'CTA · Лиссабон 2 дня' },
     { Comp: Slide15, label: 'ALT · Ticket / camp' },
     { Comp: Slide16, label: 'ALT · Code case' },
     { Comp: Slide17, label: 'ALT · PRD' },
+    { Comp: Slide11, label: 'День 2 · доводим' },
+    { Comp: Slide08, label: 'День 1 · карта инструментов' },
+    { Comp: Slide10, label: 'Простой PRD' },
+    { Comp: Slide10Task, label: 'PRD · ваша задача' },
     { Comp: Slide18, label: 'ALT · Speaker' },
+    { Comp: Slide19, label: 'ALT · Visual-only Lisboa' },
+    { Comp: Slide12, label: 'Визуальный блок' },
+    { Comp: Slide04, label: 'Туман' },
   ];
+
+  const EXPORT_PARAMS = new URLSearchParams(window.location.search);
+  const EXPORT_MODE = EXPORT_PARAMS.get('export') === '1';
+  const INITIAL_SLIDE = Math.max(
+    0,
+    Math.min(
+      SLIDE_CONFIG.length - 1,
+      Number(EXPORT_PARAMS.get('slide') || '1') - 1
+    )
+  );
 
   const FullscreenIcon = () => (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -377,7 +415,7 @@
 
   const App = () => {
     const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
-    const [current, setCurrent] = React.useState(0);
+    const [current, setCurrent] = React.useState(INITIAL_SLIDE);
     const [fullscreen, setFullscreen] = React.useState(false);
     // Expose to slide-frame & patterns via global so they don't need prop-drilling
     window.__carouselTweaks = t;
@@ -405,7 +443,16 @@
     const prev = () => setCurrent((v) => (v + SLIDE_CONFIG.length - 1) % SLIDE_CONFIG.length);
     const next = () => setCurrent((v) => (v + 1) % SLIDE_CONFIG.length);
     const active = SLIDE_CONFIG[current];
+    const ActiveComp = active.Comp;
     const swipeHandlers = useSwipeNavigation({ onPrev: prev, onNext: next });
+
+    if (EXPORT_MODE) {
+      return (
+        <div style={{ width: 1080, height: 1620, overflow: 'hidden', background: '#000' }}>
+          <ActiveComp index={current}/>
+        </div>
+      );
+    }
 
     return (
       <>
